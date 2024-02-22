@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Trends</title>
+    <style>
+        body {
+            background: linear-gradient(to right, #4b6cb7, #182848);
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        svg {
+            border: 1px solid white; /* To make the SVG boundaries visible */
+        }
+        /* Additional styles can be added if needed */
+    </style>
+</head>
+<body>
+    <h1>Code Trends</h1>
+    <!-- SVG container for the bubble chart -->
+    <svg width="960" height="500"></svg>
+    
+    <!-- D3.js script -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Script for creating the bubble chart -->
+    <script>
+        // Your JSON data URL
+        const dataUrl = 'codetrends.json'; // Update this with the correct path
+
+        // Dimensions for the SVG container
+        const width = 960;
+        const height = 500;
+
+        // Select the SVG element
+        const svg = d3.select('svg');
+
+// Load the JSON data
+d3.json(dataUrl).then(data => {
+    // Create a scale for your bubbles
+    const radiusScale = d3.scaleSqrt()
+        .domain([0, d3.max(data, d => parseFloat(d.rating))])
+        .range([0, 50]); // Adjust range to fit your design
+
+    // Create a simulation for positioning the bubbles
+    const simulation = d3.forceSimulation(data)
+        .force('charge', d3.forceManyBody().strength(15))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => radiusScale(parseFloat(d.rating)) + 2))
+        .on('tick', ticked);
+
+    function ticked() {
+        const bubbles = svg.selectAll('.bubble')
+            .data(data)
+            .join('circle')
+                .attr('class', 'bubble')
+                .attr('r', d => radiusScale(parseFloat(d.rating)))
+                .attr('cx', d => d.x)
+                .attr('cy', d => d.y)
+                .attr('fill', 'cyan') // Add this to make bubbles visible if they aren't already styled
+                .call(d3.drag() // Enables bubble dragging
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+        const labels = svg.selectAll('.label')
+            .data(data)
+            .join('text')
+                .attr('class', 'label')
+                .attr('x', d => d.x)
+                .attr('y', d => d.y)
+                .attr('text-anchor', 'middle')
+                .attr('dy', '.3em') // to vertically center text
+                .text(d => d.language)
+                .attr('fill', 'white'); // Add this to make text visible if it isn't already styled
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+    }
+});
+    </script>
+</body>
+</html>
